@@ -22,16 +22,6 @@ public class FetchAddressIntentService extends IntentService {
         super("FetchAddressIntentService");
     }
 
-    public static final int SUCCESS_RESULT = 0;
-    public static final int FAILURE_RESULT = 1;
-    public static final String PACKAGE_NAME =
-            "com.google.android.gms.location.sample.locationaddress";
-    public static final String RECEIVER = PACKAGE_NAME + ".RECEIVER";
-    public static final String RESULT_DATA_KEY = PACKAGE_NAME +
-            ".RESULT_DATA_KEY";
-    public static final String LOCATION_DATA_EXTRA = PACKAGE_NAME +
-            ".LOCATION_DATA_EXTRA";
-
     protected ResultReceiver mReceiver;
 
     @Override
@@ -41,7 +31,7 @@ public class FetchAddressIntentService extends IntentService {
 
         String errorMessage = "";
 
-        mReceiver = intent.getParcelableExtra(RECEIVER);
+        mReceiver = intent.getParcelableExtra(getString(R.string.fetch_address_receiver));
 
         // Check if receiver was properly registered.
         if (mReceiver == null) {
@@ -50,14 +40,12 @@ public class FetchAddressIntentService extends IntentService {
         }
 
         // Get the location passed to this service through an extra.
-        Location location = intent.getParcelableExtra(LOCATION_DATA_EXTRA);
+        Location location = intent.getParcelableExtra(getString(R.string.fetch_address_location_extra));
 
-        // Make sure that the location data was really sent over through an extra. If it wasn't,
-        // send an error error message and return.
         if (location == null) {
             errorMessage = getString(R.string.no_location_data_provided);
             Log.wtf(FetchAddressIntentService.class.getSimpleName(), errorMessage);
-            deliverResultToReceiver(FAILURE_RESULT, errorMessage);
+            deliverResultToReceiver(getResources().getInteger(R.integer.fetch_address_failure_result), errorMessage, null);
             return;
         }
 
@@ -75,24 +63,21 @@ public class FetchAddressIntentService extends IntentService {
                     // In this sample, we get just a single address.
                     1);
         } catch (IOException ioException) {
-            // Catch network or other I/O problems.
             errorMessage = getString(R.string.service_not_available);
             Log.e(FetchAddressIntentService.class.getSimpleName(), errorMessage, ioException);
         } catch (IllegalArgumentException illegalArgumentException) {
-            // Catch invalid latitude or longitude values.
             errorMessage = getString(R.string.invalid_lat_long_used);
             Log.e(FetchAddressIntentService.class.getSimpleName(), errorMessage + ". " +
                     "Latitude = " + location.getLatitude() +
                     ", Longitude = " + location.getLongitude(), illegalArgumentException);
         }
 
-        // Handle case where no address was found.
         if (addresses == null || addresses.size()  == 0) {
             if (errorMessage.isEmpty()) {
                 errorMessage = getString(R.string.no_address_found);
                 Log.e(FetchAddressIntentService.class.getSimpleName(), errorMessage);
             }
-            deliverResultToReceiver(FAILURE_RESULT, errorMessage);
+            deliverResultToReceiver(getResources().getInteger(R.integer.fetch_address_failure_result), errorMessage, null);
         } else {
             Address address = addresses.get(0);
             ArrayList<String> addressFragments = new ArrayList<String>();
@@ -110,17 +95,20 @@ public class FetchAddressIntentService extends IntentService {
                 addressFragments.add(address.getAddressLine(i));
             }
             Log.i(FetchAddressIntentService.class.getSimpleName(), getString(R.string.address_found));
-            deliverResultToReceiver(SUCCESS_RESULT,
-                    TextUtils.join(System.getProperty("line.separator"), addressFragments));
+            deliverResultToReceiver(getResources().getInteger(R.integer.fetch_address_success_result),
+                    TextUtils.join(System.getProperty("line.separator"), addressFragments), address);
         }
     }
 
     /**
      * Sends a resultCode and message to the receiver.
      */
-    private void deliverResultToReceiver(int resultCode, String message) {
+    private void deliverResultToReceiver(int resultCode, String message, Address address) {
         Bundle bundle = new Bundle();
-        bundle.putString(RESULT_DATA_KEY, message);
+        bundle.putString(getString(R.string.fetch_address_result_data), message);
+        if (address != null) {
+            bundle.putParcelable(getString(R.string.fetch_address_result_addres), address);
+        }
         mReceiver.send(resultCode, bundle);
     }
 

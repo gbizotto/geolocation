@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <integer name="fetch_address_success_result">0</integer>
+    <integer name="fetch_address_failure_result">1</integer>
+    <string name="fetch_address_receiver">fetch_address_receiver</string>
+    <string name="fetch_address_result_data">fetch_address_result_data</string>
+    <string name="fetch_address_result_addres">fetch_address_result_addres</string>
+    <string name="fetch_address_location_extra">fetch_address_location_extra</string>
+</resources>

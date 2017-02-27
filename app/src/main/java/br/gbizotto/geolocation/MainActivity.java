@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
 import com.google.android.gms.location.LocationListener;
@@ -61,6 +62,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
      * The formatted location address.
      */
     protected String mAddressOutput;
+    private Address mAddress;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -213,8 +215,8 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
 
     protected void startIntentService() {
         Intent intent = new Intent(this, FetchAddressIntentService.class);
-        intent.putExtra(FetchAddressIntentService.RECEIVER, mResultReceiver);
-        intent.putExtra(FetchAddressIntentService.LOCATION_DATA_EXTRA, mLastLocation);
+        intent.putExtra(getString(R.string.fetch_address_receiver), mResultReceiver);
+        intent.putExtra(getString(R.string.fetch_address_location_extra), mLastLocation);
         startService(intent);
     }
 
@@ -233,11 +235,19 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
 
             // Display the address string
             // or an error message sent from the intent service.
-            mAddressOutput = resultData.getString(FetchAddressIntentService.RESULT_DATA_KEY);
-            displayAddressOutput();
+            mAddressOutput = resultData.getString(getString(R.string.fetch_address_result_data));
+
+            if (resultData.containsKey(getString(R.string.fetch_address_result_addres))) {
+                mAddress = (Address) resultData.getParcelable(getString(R.string.fetch_address_result_addres));
+
+                if (mAddress != null) {
+                    displayAddressOutput();
+                    mAddressRequested = false;
+                }
+            }
 
             // Show a toast message if an address was found.
-            if (resultCode == FetchAddressIntentService.SUCCESS_RESULT) {
+            if (resultCode == getResources().getInteger(R.integer.fetch_address_failure_result)) {
                 Toast.makeText(mContext, R.string.address_found, Toast.LENGTH_LONG).show();
             }
 
