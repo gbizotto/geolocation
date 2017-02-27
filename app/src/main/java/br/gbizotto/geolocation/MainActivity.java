@@ -3,33 +3,23 @@ package br.gbizotto.geolocation;
 import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.location.Address;
-import android.location.Geocoder;
 import android.location.Location;
-import com.google.android.gms.location.LocationListener;
 import android.os.Handler;
 import android.os.ResultReceiver;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
-import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.location.LocationRequest;
-import com.google.android.gms.location.LocationServices;
-
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
 
-public class MainActivity extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener {
+public class MainActivity extends AppCompatActivity {
 
     private static final int PERMISSION_LOCATION = 1;
 
@@ -80,25 +70,12 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
     @OnClick(R.id.btnFind)
     public void onFindMyAddressClick() {
         if (hasLocationPermission()) {
-            buildGoogleApiClient();
-            // Only start the service to fetch the address if GoogleApiClient is
-            // connected.
-            if (mGoogleApiClient.isConnected() && mLastLocation != null) {
-                startIntentService();
-            }
-            // If GoogleApiClient isn't connected, process the user's request by
-            // setting mAddressRequested to true. Later, when GoogleApiClient connects,
-            // launch the service to fetch the address. As far as the user is
-            // concerned, pressing the Fetch Address button
-            // immediately kicks off the process of getting the address.
-            mAddressRequested = true;
+            startIntentService();
         }
     }
 
     private boolean hasLocationPermission() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
-                ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-
+        if (!PermissionsUtils.checkLocationPermission(this)) {
             ActivityCompat.requestPermissions(this, new String[]{
                     Manifest.permission.ACCESS_COARSE_LOCATION,
                     Manifest.permission.ACCESS_FINE_LOCATION},
@@ -114,115 +91,14 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (grantResults.length > 0) {
             // Inicia o servico de localizacao
-            startLocationSearch();
-        }
-    }
-
-    private void startLocationSearch(){
-        buildGoogleApiClient();
-    }
-
-    protected synchronized void buildGoogleApiClient() {
-        mGoogleApiClient = new GoogleApiClient.Builder(this)
-                .addConnectionCallbacks(this)
-                .addOnConnectionFailedListener(this)
-                .addApi(LocationServices.API)
-                .build();
-
-        mGoogleApiClient.connect();
-    }
-
-    @Override
-    public void onLocationChanged(Location location) {
-        mLastLatitude = location.getLatitude();
-        mLastLongitude = location.getLongitude();
-
-        StringBuilder coordinates = new StringBuilder();
-        coordinates.append(mLastLatitude)
-                .append(",")
-                .append(mLastLongitude);
-
-        mTxtCoordinates.setText(coordinates);
-
-        mLastLocation = location;
-        if (mGoogleApiClient.isConnected() && mLastLocation != null) {
             startIntentService();
         }
-        // If GoogleApiClient isn't connected, process the user's request by
-        // setting mAddressRequested to true. Later, when GoogleApiClient connects,
-        // launch the service to fetch the address. As far as the user is
-        // concerned, pressing the Fetch Address button
-        // immediately kicks off the process of getting the address.
-        mAddressRequested = true;
-    }
-
-    @Override
-    public void onConnected(@Nullable Bundle bundle) {
-
-        try {
-            LocationRequest mLocationRequest = LocationUtils.createLocationRequest();
-            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                Log.e(MainActivity.class.getSimpleName(),getString(R.string.error_localization));
-                Toast.makeText(getApplication(), getString(R.string.error_localization), Toast.LENGTH_LONG).show();
-            }else {
-                LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
-            }
-
-            // Only start the service to fetch the address if GoogleApiClient is
-            // connected.
-            if (mGoogleApiClient.isConnected() && mLastLocation != null) {
-                startIntentService();
-            }
-            // If GoogleApiClient isn't connected, process the user's request by
-            // setting mAddressRequested to true. Later, when GoogleApiClient connects,
-            // launch the service to fetch the address. As far as the user is
-            // concerned, pressing the Fetch Address button
-            // immediately kicks off the process of getting the address.
-            mAddressRequested = true;
-
-        } catch (Exception e) {
-            Log.e(MainActivity.class.getSimpleName(), e.getMessage(), e);
-            tryAgain();
-        }
-
-
-        if (mLastLocation != null) {
-            // Determine whether a Geocoder is available.
-            if (!Geocoder.isPresent()) {
-                Toast.makeText(this, R.string.no_geocoder_available, Toast.LENGTH_LONG).show();
-                return;
-            }
-            // It is possible that the user presses the button to get the address before the
-            // GoogleApiClient object successfully connects. In such a case, mAddressRequested
-            // is set to true, but no attempt is made to fetch the address (see
-            // fetchAddressButtonHandler()) . Instead, we start the intent service here if the
-            // user has requested an address, since we now have a connection to GoogleApiClient.
-            if (mAddressRequested) {
-                startIntentService();
-            }
-        }
-    }
-
-    @Override
-    public void onConnectionSuspended(int i) {
-
-    }
-
-    @Override
-    public void onConnectionFailed(@NonNull com.google.android.gms.common.ConnectionResult connectionResult) {
-
     }
 
     protected void startIntentService() {
-        Intent intent = new Intent(this, FetchAddressIntentService.class);
+        Intent intent = new Intent(this, LocationService.class);
         intent.putExtra(getString(R.string.fetch_address_receiver), mResultReceiver);
-        intent.putExtra(getString(R.string.fetch_address_location_extra), mLastLocation);
         startService(intent);
-    }
-
-    private void tryAgain() {
-        LocationUtils.disconnectFromLocationServices(mGoogleApiClient, this);
-        mGoogleApiClient.connect();
     }
 
     class AddressResultReceiver extends ResultReceiver {

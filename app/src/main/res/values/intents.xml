@@ -5,5 +5,4 @@
     <string name="fetch_address_receiver">fetch_address_receiver</string>
     <string name="fetch_address_result_data">fetch_address_result_data</string>
     <string name="fetch_address_result_addres">fetch_address_result_addres</string>
-    <string name="fetch_address_location_extra">fetch_address_location_extra</string>
 </resources>
