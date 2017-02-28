@@ -4,7 +4,6 @@ import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.location.Address;
-import android.location.Location;
 import android.os.Handler;
 import android.os.ResultReceiver;
 import android.support.v4.app.ActivityCompat;
@@ -12,8 +11,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.widget.TextView;
 import android.widget.Toast;
-
-import com.google.android.gms.common.api.GoogleApiClient;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -32,20 +29,8 @@ public class MainActivity extends AppCompatActivity {
 
     private Context mContext;
 
-    private GoogleApiClient mGoogleApiClient;
-    private static Double mLastLongitude;
-    private static Double mLastLatitude;
-    protected Location mLastLocation;
     private AddressResultReceiver mResultReceiver;
 
-    /**
-     * Tracks whether the user has requested an address. Becomes true when the user requests an
-     * address and false when the address (or an error message) is delivered.
-     * The user requests an address by pressing the Fetch Address button. This may happen
-     * before GoogleApiClient connects. This activity uses this boolean to keep track of the
-     * user's intent. If the value is true, the activity tries to fetch the address as soon as
-     * GoogleApiClient connects.
-     */
     protected boolean mAddressRequested = true;
 
     /**
@@ -53,6 +38,7 @@ public class MainActivity extends AppCompatActivity {
      */
     protected String mAddressOutput;
     private Address mAddress;
+    private Intent mIntentService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -96,9 +82,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     protected void startIntentService() {
-        Intent intent = new Intent(this, LocationService.class);
-        intent.putExtra(getString(R.string.fetch_address_receiver), mResultReceiver);
-        startService(intent);
+        mIntentService = new Intent(this, LocationService.class);
+        mIntentService.putExtra(getString(R.string.fetch_address_receiver), mResultReceiver);
+        startService(mIntentService);
     }
 
     class AddressResultReceiver extends ResultReceiver {
@@ -134,6 +120,12 @@ public class MainActivity extends AppCompatActivity {
      * Updates the address in the UI.
      */
     protected void displayAddressOutput() {
+
+        mTxtZipCode.setText(mAddress.getPostalCode());
         mTxtAddress.setText(mAddressOutput);
+
+        if (mIntentService != null) {
+            stopService(mIntentService);
+        }
     }
 }

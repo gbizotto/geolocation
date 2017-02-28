@@ -49,12 +49,14 @@ public class LocationService extends IntentService implements GoogleApiClient.Co
 
         // Check if receiver was properly registered.
         if (mReceiver == null) {
-            Log.wtf(FetchAddressIntentService.class.getSimpleName(), "No receiver received. There is nowhere to send the results.");
+            Log.wtf(LocationService.class.getSimpleName(), "No receiver received. There is nowhere to send the results.");
             return;
         }
 
         if (isNetworkAvailable()) {
             buildGoogleApiClient();
+        } else {
+            deliverResultToReceiver(getResources().getInteger(R.integer.fetch_address_failure_result), getString(R.string.no_internet_connection));
         }
     }
 
@@ -75,13 +77,11 @@ public class LocationService extends IntentService implements GoogleApiClient.Co
             if (PermissionsUtils.checkLocationPermission(this)) {
                 LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
             }
-
         } catch (Exception e) {
-            Log.d(LOG_TAG, getString(R.string.error_localization));
-            Log.e(LOG_TAG,e.getMessage(),e);
+            Log.e(LOG_TAG, e.getMessage(), e);
+            deliverResultToReceiver(getResources().getInteger(R.integer.fetch_address_failure_result), getString(R.string.error_localization));
             disconnectFromLocationServices(mGoogleApiClient, this);
         }
-
     }
 
     @Override
@@ -99,9 +99,6 @@ public class LocationService extends IntentService implements GoogleApiClient.Co
         List<Address> addresses = null;
 
         try {
-            // Using getFromLocation() returns an array of Addresses for the area immediately
-            // surrounding the given latitude and longitude. The results are a best guess and are
-            // not guaranteed to be accurate.
             addresses = geocoder.getFromLocation(
                     location.getLatitude(),
                     location.getLongitude(),
@@ -109,10 +106,10 @@ public class LocationService extends IntentService implements GoogleApiClient.Co
                     1);
         } catch (IOException ioException) {
             errorMessage = getString(R.string.service_not_available);
-            Log.e(FetchAddressIntentService.class.getSimpleName(), errorMessage, ioException);
+            Log.e(LocationService.class.getSimpleName(), errorMessage, ioException);
         } catch (IllegalArgumentException illegalArgumentException) {
             errorMessage = getString(R.string.invalid_lat_long_used);
-            Log.e(FetchAddressIntentService.class.getSimpleName(), errorMessage + ". " +
+            Log.e(LocationService.class.getSimpleName(), errorMessage + ". " +
                     "Latitude = " + location.getLatitude() +
                     ", Longitude = " + location.getLongitude(), illegalArgumentException);
         }
@@ -120,26 +117,16 @@ public class LocationService extends IntentService implements GoogleApiClient.Co
         if (addresses == null || addresses.size()  == 0) {
             if (errorMessage.isEmpty()) {
                 errorMessage = getString(R.string.no_address_found);
-                Log.e(FetchAddressIntentService.class.getSimpleName(), errorMessage);
+                Log.e(LocationService.class.getSimpleName(), errorMessage);
             }
             deliverResultToReceiver(getResources().getInteger(R.integer.fetch_address_failure_result), errorMessage, null);
         } else {
             Address address = addresses.get(0);
             ArrayList<String> addressFragments = new ArrayList<String>();
 
-            // Fetch the address lines using {@code getAddressLine},
-            // join them, and send them to the thread. The {@link android.location.address}
-            // class provides other options for fetching address details that you may prefer
-            // to use. Here are some examples:
-            // getLocality() ("Mountain View", for example)
-            // getAdminArea() ("CA", for example)
-            // getPostalCode() ("94043", for example)
-            // getCountryCode() ("US", for example)
-            // getCountryName() ("United States", for example)
             for(int i = 0; i < address.getMaxAddressLineIndex(); i++) {
                 addressFragments.add(address.getAddressLine(i));
             }
-            Log.i(FetchAddressIntentService.class.getSimpleName(), getString(R.string.address_found));
             deliverResultToReceiver(getResources().getInteger(R.integer.fetch_address_success_result),
                     TextUtils.join(System.getProperty("line.separator"), addressFragments), address);
         }
@@ -147,9 +134,7 @@ public class LocationService extends IntentService implements GoogleApiClient.Co
 
     @Override
     public void onConnectionFailed(ConnectionResult connectionResult) {
-        Log.e(LOG_TAG, "falhou na conexao, erro = " + connectionResult.getErrorCode());
-
-        Toast.makeText(getApplication(), getString(R.string.error_localization), Toast.LENGTH_LONG).show();
+        deliverResultToReceiver(getResources().getInteger(R.integer.fetch_address_failure_result), getString(R.string.error_localization));
         disconnectFromLocationServices(mGoogleApiClient, this);
     }
 
@@ -185,6 +170,12 @@ public class LocationService extends IntentService implements GoogleApiClient.Co
         if (address != null) {
             bundle.putParcelable(getString(R.string.fetch_address_result_addres), address);
         }
+        mReceiver.send(resultCode, bundle);
+    }
+
+    private void deliverResultToReceiver(int resultCode, String message) {
+        Bundle bundle = new Bundle();
+        bundle.putString(getString(R.string.fetch_address_result_data), message);
         mReceiver.send(resultCode, bundle);
     }
 }
