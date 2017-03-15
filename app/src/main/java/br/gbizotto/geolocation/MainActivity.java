@@ -23,8 +23,6 @@ public class MainActivity extends AppCompatActivity implements AddressReceiver {
 
     private static final int PERMISSION_LOCATION = 1;
 
-    @BindView(R.id.txtCoordinates)
-    TextView mTxtCoordinates;
     @BindView(R.id.txtZipCode)
     TextView mTxtZipCode;
     @BindView(R.id.txtAddress)
