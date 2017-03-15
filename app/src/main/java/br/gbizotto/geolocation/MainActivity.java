@@ -1,22 +1,24 @@
 package br.gbizotto.geolocation;
 
 import android.Manifest;
-import android.content.Context;
 import android.content.Intent;
 import android.location.Address;
 import android.os.Handler;
-import android.os.ResultReceiver;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.widget.TextView;
-import android.widget.Toast;
 
+import java.util.ArrayList;
+
+import br.gbizotto.geolocation.service.LocationService;
+import br.gbizotto.geolocation.utils.PermissionsUtils;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements AddressReceiver {
 
     private static final int PERMISSION_LOCATION = 1;
 
@@ -27,11 +29,7 @@ public class MainActivity extends AppCompatActivity {
     @BindView(R.id.txtAddress)
     TextView mTxtAddress;
 
-    private Context mContext;
-
     private AddressResultReceiver mResultReceiver;
-
-    protected boolean mAddressRequested = true;
 
     /**
      * The formatted location address.
@@ -45,12 +43,9 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mContext = this;
-
         ButterKnife.bind(this);
 
-        mResultReceiver = new AddressResultReceiver(new Handler());
-
+        mResultReceiver = new AddressResultReceiver(new Handler(), this, this);
     }
 
     @OnClick(R.id.btnFind)
@@ -76,7 +71,6 @@ public class MainActivity extends AppCompatActivity {
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (grantResults.length > 0) {
-            // Inicia o servico de localizacao
             startIntentService();
         }
     }
@@ -87,45 +81,27 @@ public class MainActivity extends AppCompatActivity {
         startService(mIntentService);
     }
 
-    class AddressResultReceiver extends ResultReceiver {
-        public AddressResultReceiver(Handler handler) {
-            super(handler);
-        }
-
-        @Override
-        protected void onReceiveResult(int resultCode, Bundle resultData) {
-
-            // Display the address string
-            // or an error message sent from the intent service.
-            mAddressOutput = resultData.getString(getString(R.string.fetch_address_result_data));
-
-            if (resultData.containsKey(getString(R.string.fetch_address_result_addres))) {
-                mAddress = (Address) resultData.getParcelable(getString(R.string.fetch_address_result_addres));
-
-                if (mAddress != null) {
-                    displayAddressOutput();
-                    mAddressRequested = false;
-                }
-            }
-
-            // Show a toast message if an address was found.
-            if (resultCode == getResources().getInteger(R.integer.fetch_address_failure_result)) {
-                Toast.makeText(mContext, R.string.address_found, Toast.LENGTH_LONG).show();
-            }
-
-        }
-    }
-
     /**
      * Updates the address in the UI.
      */
-    protected void displayAddressOutput() {
+    protected void displayAddressOutput(Address address) {
+        mTxtZipCode.setText(address.getPostalCode());
 
-        mTxtZipCode.setText(mAddress.getPostalCode());
-        mTxtAddress.setText(mAddressOutput);
+        ArrayList<String> addressFragments = new ArrayList<String>();
+
+        for(int i = 0; i < address.getMaxAddressLineIndex(); i++) {
+            addressFragments.add(address.getAddressLine(i));
+        }
+
+        mTxtAddress.setText(TextUtils.join(System.getProperty("line.separator"), addressFragments));
 
         if (mIntentService != null) {
             stopService(mIntentService);
         }
+    }
+
+    @Override
+    public void receiveAddress(Address address) {
+        displayAddressOutput(address);
     }
 }

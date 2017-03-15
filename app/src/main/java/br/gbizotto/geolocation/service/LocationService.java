@@ -1,4 +1,4 @@
-package br.gbizotto.geolocation;
+package br.gbizotto.geolocation.service;
 
 import android.app.IntentService;
 import android.content.Context;
@@ -12,7 +12,6 @@ import android.os.Bundle;
 import android.os.ResultReceiver;
 import android.text.TextUtils;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -22,9 +21,11 @@ import com.google.android.gms.location.LocationServices;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+
+import br.gbizotto.geolocation.R;
+import br.gbizotto.geolocation.utils.PermissionsUtils;
 
 
 public class LocationService extends IntentService implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener {

@@ -1,4 +1,4 @@
-package br.gbizotto.geolocation;
+package br.gbizotto.geolocation.utils;
 
 import android.Manifest;
 import android.content.Context;
