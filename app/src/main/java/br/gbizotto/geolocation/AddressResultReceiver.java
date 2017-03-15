@@ -5,7 +5,6 @@ import android.location.Address;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.ResultReceiver;
-import android.widget.Toast;
 
 /**
  * Created by Gabriela on 15/03/2017.
@@ -13,9 +12,9 @@ import android.widget.Toast;
 
 public class AddressResultReceiver extends ResultReceiver {
 
-    private Context mContext;
+    private final Context mContext;
 
-    private AddressReceiver mAddressReceiver;
+    private final AddressReceiver mAddressReceiver;
 
     public AddressResultReceiver(Handler handler, Context context, AddressReceiver addressReceiver) {
         super(handler);
@@ -25,8 +24,8 @@ public class AddressResultReceiver extends ResultReceiver {
 
     @Override
     protected void onReceiveResult(int resultCode, Bundle resultData) {
-        if (resultData.containsKey(mContext.getString(R.string.fetch_address_result_addres))) {
-            Address address = (Address) resultData.getParcelable(mContext.getString(R.string.fetch_address_result_addres));
+        if (resultData.containsKey(mContext.getString(R.string.fetch_address_result_address))) {
+            Address address = resultData.getParcelable(mContext.getString(R.string.fetch_address_result_address));
 
             if (address != null) {
                 mAddressReceiver.receiveAddress(address);

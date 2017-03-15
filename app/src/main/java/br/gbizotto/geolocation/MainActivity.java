@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.Intent;
 import android.location.Address;
 import android.os.Handler;
+import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -31,11 +32,6 @@ public class MainActivity extends AppCompatActivity implements AddressReceiver {
 
     private AddressResultReceiver mResultReceiver;
 
-    /**
-     * The formatted location address.
-     */
-    protected String mAddressOutput;
-    private Address mAddress;
     private Intent mIntentService;
 
     @Override
@@ -68,14 +64,14 @@ public class MainActivity extends AppCompatActivity implements AddressReceiver {
         return true;
     }
 
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (grantResults.length > 0) {
             startIntentService();
         }
     }
 
-    protected void startIntentService() {
+    private void startIntentService() {
         mIntentService = new Intent(this, LocationService.class);
         mIntentService.putExtra(getString(R.string.fetch_address_receiver), mResultReceiver);
         startService(mIntentService);
@@ -87,7 +83,7 @@ public class MainActivity extends AppCompatActivity implements AddressReceiver {
     protected void displayAddressOutput(Address address) {
         mTxtZipCode.setText(address.getPostalCode());
 
-        ArrayList<String> addressFragments = new ArrayList<String>();
+        ArrayList<String> addressFragments = new ArrayList<>();
 
         for(int i = 0; i < address.getMaxAddressLineIndex(); i++) {
             addressFragments.add(address.getAddressLine(i));

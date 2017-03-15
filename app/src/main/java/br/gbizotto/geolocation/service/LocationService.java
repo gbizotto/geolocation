@@ -10,6 +10,7 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.os.ResultReceiver;
+import android.support.annotation.NonNull;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -32,9 +33,8 @@ public class LocationService extends IntentService implements GoogleApiClient.Co
     private static final String LOG_TAG = LocationService.class.getSimpleName();
 
     private GoogleApiClient mGoogleApiClient;
-    private LocationRequest mLocationRequest;
 
-    protected ResultReceiver mReceiver;
+    private ResultReceiver mReceiver;
 
     public LocationService(String name) {
         super(name);
@@ -42,7 +42,7 @@ public class LocationService extends IntentService implements GoogleApiClient.Co
 
     public LocationService(){
         super(LocationService.class.getSimpleName());
-    };
+    }
 
     @Override
     protected void onHandleIntent(Intent intent) {
@@ -61,7 +61,7 @@ public class LocationService extends IntentService implements GoogleApiClient.Co
         }
     }
 
-    protected synchronized void buildGoogleApiClient() {
+    private synchronized void buildGoogleApiClient() {
         mGoogleApiClient = new GoogleApiClient.Builder(this)
                 .addConnectionCallbacks(this)
                 .addOnConnectionFailedListener(this)
@@ -74,7 +74,7 @@ public class LocationService extends IntentService implements GoogleApiClient.Co
     @Override
     public void onConnected(Bundle bundle) {
         try {
-            mLocationRequest = createLocationRequest();
+            LocationRequest mLocationRequest = createLocationRequest();
             if (PermissionsUtils.checkLocationPermission(this)) {
                 LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
             }
@@ -87,12 +87,11 @@ public class LocationService extends IntentService implements GoogleApiClient.Co
 
     @Override
     public void onConnectionSuspended(int i) {
-        Log.e(LOG_TAG, "conexao suspensa, erro = " + i);
+        Log.e(LOG_TAG, "Suspended connection, error code = " + i);
     }
 
     @Override
     public void onLocationChanged(Location location) {
-        Log.d(LOG_TAG,"entrou em LocationService, onLocationChanged");
         Geocoder geocoder = new Geocoder(this, Locale.getDefault());
 
         String errorMessage = "";
@@ -123,7 +122,7 @@ public class LocationService extends IntentService implements GoogleApiClient.Co
             deliverResultToReceiver(getResources().getInteger(R.integer.fetch_address_failure_result), errorMessage, null);
         } else {
             Address address = addresses.get(0);
-            ArrayList<String> addressFragments = new ArrayList<String>();
+            ArrayList<String> addressFragments = new ArrayList<>();
 
             for(int i = 0; i < address.getMaxAddressLineIndex(); i++) {
                 addressFragments.add(address.getAddressLine(i));
@@ -134,7 +133,7 @@ public class LocationService extends IntentService implements GoogleApiClient.Co
     }
 
     @Override
-    public void onConnectionFailed(ConnectionResult connectionResult) {
+    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
         deliverResultToReceiver(getResources().getInteger(R.integer.fetch_address_failure_result), getString(R.string.error_localization));
         disconnectFromLocationServices(mGoogleApiClient, this);
     }
@@ -147,12 +146,10 @@ public class LocationService extends IntentService implements GoogleApiClient.Co
     }
 
     private LocationRequest createLocationRequest() {
-        LocationRequest locationRequest = LocationRequest.create()
+        return LocationRequest.create()
                 .setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY)
-                .setInterval(30 * 1000)        // 10 seconds, in milliseconds
-                .setFastestInterval(10 * 1000); // 10 second, in milliseconds
-
-        return locationRequest;
+                .setInterval(30 * 1000)
+                .setFastestInterval(10 * 1000);
     }
 
     private void disconnectFromLocationServices(GoogleApiClient googleApiClient, LocationListener locationListener) {
@@ -169,7 +166,7 @@ public class LocationService extends IntentService implements GoogleApiClient.Co
         Bundle bundle = new Bundle();
         bundle.putString(getString(R.string.fetch_address_result_data), message);
         if (address != null) {
-            bundle.putParcelable(getString(R.string.fetch_address_result_addres), address);
+            bundle.putParcelable(getString(R.string.fetch_address_result_address), address);
         }
         mReceiver.send(resultCode, bundle);
     }
